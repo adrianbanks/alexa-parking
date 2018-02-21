@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace Parking
 {
-    internal sealed class CarParkParser
+    internal static class CarParkParser
     {
-        public IEnumerable<CarPark> ParseFromHtml(string html)
+        public static IEnumerable<CarPark> ParseFromHtml(string html)
         {
             var simplified = html.Replace(" car park", "")
                 .Replace("<h2>", "")

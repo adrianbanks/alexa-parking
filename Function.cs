@@ -1,6 +1,9 @@
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Alexa.NET.Request;
 using Alexa.NET.Response;
+using Alexa.NET.Response.Directive;
 using Amazon.Lambda.Core;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -10,10 +13,10 @@ namespace Parking
 {
     public sealed class Function
     {
-        public SkillResponse FunctionHandler(SkillRequest input, ILambdaContext context)
+        public SkillResponse FunctionHandler(SkillRequest request, ILambdaContext context)
         {
-            context.Logger.LogLine("Default LaunchRequest made: 'Alexa, open parking");
-            var spokenResponse = new PlainTextOutputSpeech { Text = GetLeastBusyText() };
+            var leastBusyText = HandleRequest(request).Result;
+            var spokenResponse = new PlainTextOutputSpeech { Text = leastBusyText };
 
             return new SkillResponse
             {
@@ -26,15 +29,40 @@ namespace Parking
             };
         }
 
-        private string GetLeastBusyText()
+        private async Task<string> HandleRequest(SkillRequest request)
         {
-            var html = new RawDataFetcher().GetRawData();
-            var carParks = new CarParkParser().ParseFromHtml(html);
+            var progressiveResponseTask = SendProgressiveResponse(request);
+            var leastBusyTask = GetLeastBusyCarPark();
 
-            var leastBusy = carParks.OrderByDescending(p => p.NumberOfFreeSpaces).First();
+            await progressiveResponseTask;
+            var leastBusy = await leastBusyTask;
 
             return $@"{leastBusy.Name} is least busy at {leastBusy.PercentFull} percent full.
 It currently has {leastBusy.NumberOfFreeSpaces} spaces free and is {leastBusy.UsageDirection}";
+        }
+
+        private Task<HttpResponseMessage> SendProgressiveResponse(SkillRequest request)
+        {
+            if (ProgressiveResponse.IsSupported(request))
+            {
+                var response = new ProgressiveResponse(request);
+                var directive = new VoicePlayerSpeakDirective("Getting car park information");
+                return response.Send(directive);
+            }
+
+            return Task.FromResult((HttpResponseMessage) null);
+        }
+
+        private Task<CarPark> GetLeastBusyCarPark()
+        {
+            var httpClient = new HttpClient();
+
+            return httpClient.GetStringAsync("https://www.cambridge.gov.uk/jdi_parking_ajax/complete")
+                .ContinueWith(task =>
+                {
+                    var carParks = CarParkParser.ParseFromHtml(task.Result);
+                    return carParks.OrderByDescending(p => p.NumberOfFreeSpaces).First();
+                });
         }
     }
 }
