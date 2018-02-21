@@ -11,7 +11,7 @@ using Amazon.Lambda.Core;
 
 namespace Parking
 {
-    public class Function
+    public sealed class Function
     {
         public SkillResponse FunctionHandler(SkillRequest input, ILambdaContext context)
         {
@@ -98,21 +98,6 @@ It currently has {leastBusy.NumberOfFreeSpaces} spaces free and is {leastBusy.Us
             }
 
             return carParks;
-        }
-
-        private sealed class CarPark
-        {
-            public string Name { get; set; }
-            public int NumberOfFreeSpaces { get; set; }
-            public int PercentFull { get; set; }
-            public SpaceUsageDirection UsageDirection { get; set; }
-        }
-
-        private enum SpaceUsageDirection
-        {
-            Emptying,
-            Filling,
-            Static
         }
     }
 }
