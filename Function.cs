@@ -37,7 +37,7 @@ namespace Parking
             await progressiveResponseTask;
             var leastBusy = await leastBusyTask;
 
-            return $@"{leastBusy.Name} is least busy at {leastBusy.PercentFull} percent full.
+            return $@"{leastBusy.Name} is least busy at {leastBusy.PercentFull}% full.
 It currently has {leastBusy.NumberOfFreeSpaces} spaces free and is {leastBusy.UsageDirection.ToString().ToLower()}.";
         }
 
