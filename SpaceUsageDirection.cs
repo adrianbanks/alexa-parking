@@ -4,6 +4,7 @@
     {
         Emptying,
         Filling,
-        Static
+        Static,
+        Full
     }
 }

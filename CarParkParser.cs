@@ -13,6 +13,8 @@ namespace Parking
                 .Replace("</h2>", "")
                 .Replace("<p>", "")
                 .Replace("</p>", "")
+                .Replace("<b>", "")
+                .Replace("</b>", "")
                 .Replace("<strong>", "")
                 .Replace("</strong>", "");
 
@@ -32,26 +34,32 @@ namespace Parking
                 }
                 else
                 {
-                    var start = line.IndexOf(" spaces");
-                    var spaces = line.Substring(0, start);
-
-                    start = line.IndexOf("(") + 1;
-                    var end = line.IndexOf("%");
-                    var percentFull = line.Substring(start, end - start);
-
-                    start = line.IndexOf(" and ") + 5;
-                    end = line.IndexOf(")");
-                    var direction = line.Substring(start, end - start);
-                    direction = direction.First().ToString().ToUpper() + direction.Substring(1);
-
-                    var carPark = new CarPark()
+                    if (line.Contains("is full"))
                     {
-                        Name = carParkName,
-                        NumberOfFreeSpaces = int.Parse(spaces),
-                        PercentFull = int.Parse(percentFull),
-                        UsageDirection = (SpaceUsageDirection) Enum.Parse(typeof(SpaceUsageDirection), direction)
-                    };
-                    carParks.Add(carPark);
+                        var carPark = new CarPark(carParkName, 0, 100, SpaceUsageDirection.Full);
+                        carParks.Add(carPark);
+                    }
+                    else
+                    {
+                        var start = line.IndexOf(" spaces");
+                        var spaces = line.Substring(0, start);
+
+                        start = line.IndexOf("(") + 1;
+                        var end = line.IndexOf("%");
+                        var percentFullText = line.Substring(start, end - start);
+
+                        start = line.IndexOf(" and ") + 5;
+                        end = line.IndexOf(")");
+                        var direction = line.Substring(start, end - start);
+                        direction = direction.First().ToString().ToUpper() + direction.Substring(1);
+
+                        var numberOfFreeSpaces = int.Parse(spaces);
+                        var percentFull = int.Parse(percentFullText);
+                        var usageDirection = (SpaceUsageDirection)Enum.Parse(typeof(SpaceUsageDirection), direction);
+
+                        var carPark = new CarPark(carParkName, numberOfFreeSpaces, percentFull, usageDirection);
+                        carParks.Add(carPark);
+                    }
                 }
             }
 
