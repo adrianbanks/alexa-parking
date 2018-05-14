@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
+using HtmlAgilityPack;
 
 namespace Parking
 {
@@ -8,62 +10,73 @@ namespace Parking
     {
         public static IEnumerable<CarPark> ParseFromHtml(string html)
         {
-            var simplified = html.Replace(" car park", "")
-                .Replace("<h2>", "")
-                .Replace("</h2>", "")
-                .Replace("<p>", "")
-                .Replace("</p>", "")
-                .Replace("<b>", "")
-                .Replace("</b>", "")
-                .Replace("<strong>", "")
-                .Replace("</strong>", "");
+            var document = new HtmlDocument();
+            document.LoadHtml(html);
 
-            var lines = simplified.Split(new[] { "a>" }, StringSplitOptions.RemoveEmptyEntries);
+            var carParkNames = document.DocumentNode
+                .SelectNodes("//h2/a/text()")
+                .Select(n => n.InnerText)
+                .ToList();
+
+            var carParkSpaces = document.DocumentNode
+                .SelectNodes("//p/b/text()|//p/strong/text()")
+                .Select(n => n.InnerText)
+                .ToList();
+
+            var carParkFillingData = document.DocumentNode
+                .SelectNodes("//p/text()|//p/b/text()")
+                .Select(n => n.InnerText)
+                .ToList();
+
             var carParks = new List<CarPark>();
-            string carParkName = null;
 
-            for (int i = 0; i < lines.Length; i++)
+            foreach (var carParkData in carParkNames.Select((name, index) => new { name, index }))
             {
-                var line = lines[i];
+                var name = ParseName(carParkData.name);
+                var numberOfFreeSpaces = ParseFreeSpaces(carParkSpaces[carParkData.index]);
+                var (percentFull, usageDirection) = numberOfFreeSpaces == 0
+                    ? (100, SpaceUsageDirection.Full)
+                    : ParseFillData(carParkFillingData[carParkData.index]);
 
-                if (line.StartsWith("<a"))
-                {
-                    var start = line.IndexOf("\">") + 2;
-                    var end = line.IndexOf("</");
-                    carParkName = line.Substring(start, end - start);
-                }
-                else
-                {
-                    if (line.Contains("is full"))
-                    {
-                        var carPark = new CarPark(carParkName, 0, 100, SpaceUsageDirection.Full);
-                        carParks.Add(carPark);
-                    }
-                    else
-                    {
-                        var start = line.IndexOf(" spaces");
-                        var spaces = line.Substring(0, start);
-
-                        start = line.IndexOf("(") + 1;
-                        var end = line.IndexOf("%");
-                        var percentFullText = line.Substring(start, end - start);
-
-                        start = line.IndexOf(" and ") + 5;
-                        end = line.IndexOf(")");
-                        var direction = line.Substring(start, end - start);
-                        direction = direction.First().ToString().ToUpper() + direction.Substring(1);
-
-                        var numberOfFreeSpaces = int.Parse(spaces);
-                        var percentFull = int.Parse(percentFullText);
-                        var usageDirection = (SpaceUsageDirection)Enum.Parse(typeof(SpaceUsageDirection), direction);
-
-                        var carPark = new CarPark(carParkName, numberOfFreeSpaces, percentFull, usageDirection);
-                        carParks.Add(carPark);
-                    }
-                }
+                var carPark = new CarPark(name, numberOfFreeSpaces, percentFull, usageDirection);
+                carParks.Add(carPark);
             }
 
-            return carParks;
+            return carParks.OrderBy(p => p.Name);
+        }
+
+        private static string ParseName(string name)
+        {
+            int end = name.IndexOf(" car park", StringComparison.Ordinal);
+            return name.Substring(0, end);
+        }
+
+        private static int ParseFreeSpaces(string carParkSpaceData)
+        {
+            if (carParkSpaceData == "This car park is full")
+            {
+                return 0;
+            }
+
+            var regex = new Regex(@"(?<spaces>\d*?) spaces");
+            var match = regex.Match(carParkSpaceData);
+            var spacesValue = match.Groups["spaces"].Value;
+            var spaces = int.Parse(spacesValue);
+            return spaces;
+        }
+
+        private static (int, SpaceUsageDirection) ParseFillData(string fillingData)
+        {
+            var regex = new Regex(@" \((?<percent>\d*?)\% .* and (?<direction>.*?)\)");
+            var match = regex.Match(fillingData);
+
+            var percentFullValue = match.Groups["percent"].Value;
+            var percentFull = int.Parse(percentFullValue);
+
+            var directionValue = match.Groups["direction"].Value;
+            var direction = (SpaceUsageDirection) Enum.Parse(typeof(SpaceUsageDirection), directionValue, true);
+
+            return (percentFull, direction);
         }
     }
 }
