@@ -14,17 +14,17 @@ namespace Parking
             document.LoadHtml(html);
 
             var carParkNames = document.DocumentNode
-                .SelectNodes("//h2/a/text()")
+                .SelectNodes("//div[@class='col-md-12 main-content mt-3']/h2[@class='highlight']/text()")
                 .Select(n => n.InnerText)
                 .ToList();
 
             var carParkSpaces = document.DocumentNode
-                .SelectNodes("//p/b/text()|//p/strong/text()")
+                .SelectNodes("//div[@class='col-md-12 main-content mt-3']/p/strong/text()")
                 .Select(n => n.InnerText)
                 .ToList();
 
             var carParkFillingData = document.DocumentNode
-                .SelectNodes("//p/text()|//p/b/text()")
+                .SelectNodes("//div[@class='col-md-12 main-content mt-3']/p/text()")
                 .Select(n => n.InnerText)
                 .ToList();
 
@@ -67,7 +67,7 @@ namespace Parking
 
         private static (int, SpaceUsageDirection) ParseFillData(string fillingData)
         {
-            var regex = new Regex(@" \((?<percent>\d*?)\% .* and (?<direction>.*?)\)");
+            var regex = new Regex(@" \((?<percent>\d*?)\% and (?<direction>.*?)\)");
             var match = regex.Match(fillingData);
 
             var percentFullValue = match.Groups["percent"].Value;
