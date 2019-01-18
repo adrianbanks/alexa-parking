@@ -57,7 +57,7 @@ It currently has {leastBusy.NumberOfFreeSpaces} spaces free and is {leastBusy.Us
         {
             var httpClient = new HttpClient();
 
-            return httpClient.GetStringAsync("https://www.cambridge.gov.uk/jdi_parking_ajax/complete")
+            return httpClient.GetStringAsync("https://www.cambridge.gov.uk/car-park-spaces")
                 .ContinueWith(task =>
                 {
                     var carParks = CarParkParser.ParseFromHtml(task.Result);
